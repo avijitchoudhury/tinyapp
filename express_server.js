@@ -4,8 +4,18 @@ const bodyParser = require("body-parser");
 app.use(bodyParser.urlencoded({extended: true}));
 const PORT = 8080;
 
-
 app.set("view engine", "ejs"); //this tells express app to use EJS as it's templating engine
+
+function generateRandomString(length) {
+  var result = '';
+  var character = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+  var stringLength = character.length;
+  for (let i = 0; i < length; i++) {
+    result += character.charAt(Math.floor(Math.random() * stringLength));
+  }
+  return result;
+}
+
 
 const urlDatabase = {
   "b2xVn2": "http://www.lighthouselabs.ca",
@@ -44,18 +54,7 @@ app.get("/urls/:shortURL", (req, res) => {
 })
 
 app.post("/urls", (req, res) => {
-  console.log(req.body);
+  urlDatabase[(generateRandomString(6))] = req.body.longURL;
+  console.log('result', urlDatabase)
   res.send("Ok");
 });
-
-function generateRandomString(length) {
-  var result = '';
-  var character = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
-  var stringLength = character.length;
-  for (let i = 0; i < length; i++) {
-    result += character.charAt(Math.floor(Math.random() * stringLength));
-  }
-  return result;
-}
-
-generateRandomString(6)
