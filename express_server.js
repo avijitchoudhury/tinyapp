@@ -1,6 +1,9 @@
 const express = require("express");
 const app = express();
+const bodyParser = require("body-parser");
+app.use(bodyParser.urlencoded({extended: true}));
 const PORT = 8080;
+
 
 app.set("view engine", "ejs"); //this tells express app to use EJS as it's templating engine
 
@@ -30,17 +33,29 @@ app.get("/urls", (req, res) => { //passing the URL data to our template
   res.render('urls_index', templateVars)
 })
 
+app.get("/urls/new", (req, res) => {
+  res.render("urls_new")
+})
+
 app.get("/urls/:shortURL", (req, res) => {
   let templateVars = {
-    shortURL: req.params.shortURL, longURL: "http://www.lighthouselabs.ca" };
+    shortURL: req.params.shortURL, longURL: req.params.longURL };
     res.render("urls_show", templateVars)
 })
 
-// app.get("/set", (req, res) => {
-//   const a = 1;
-//   res.send(`a = ${a}`);
-// });
+app.post("/urls", (req, res) => {
+  console.log(req.body);
+  res.send("Ok");
+});
 
-// app.get("/fetch", (req, res) => {
-//   res.send(`a = ${a}`);
-// });
+function generateRandomString(length) {
+  var result = '';
+  var character = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+  var stringLength = character.length;
+  for (let i = 0; i < length; i++) {
+    result += character.charAt(Math.floor(Math.random() * stringLength));
+  }
+  return result;
+}
+
+generateRandomString(6)
