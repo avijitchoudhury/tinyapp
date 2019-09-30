@@ -2,6 +2,8 @@ const express = require("express");
 const app = express();
 const PORT = 8080;
 
+app.set("view engine", "ejs"); //this tells express app to use EJS as it's templating engine
+
 const urlDatabase = {
   "b2xVn2": "http://www.lighthouselabs.ca",
   "9sm5xK": "http://www.google.com"
