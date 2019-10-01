@@ -66,3 +66,4 @@ app.get("/u/:shortURL", (req, res) => {
   // console.log(longURL);
   res.redirect(longURL);
 })
+
