@@ -25,12 +25,33 @@ const urlDatabase = {
   "9sm5xK": "http://www.google.com"
 };
 
+const users = {
+  "userRandomID": {
+    id: "userRandomID",
+    email: "user@example.com",
+    password: "purple-monkey-dinosaur"
+  },
+  "user2RandomID": {
+    id: "user2RandomID",
+    email: "user2@example.com",
+    password: "dishwasher-funk"
+  }
+}
+
+function checkEmail(email) {
+  for(let item in users){
+
+    if (email === users[item].email) {
+      return users[item];
+    } 
+  } return false
+};
+
 app.get("/", (req, res) => { //prints the initial message Hello when opening the browser
   res.send("Hello!");
 });
 
 app.listen(PORT, () => { //when turning on the server to recieve requests. the console will print out message
-  console.log(`Example app listening on port ${PORT}!`);
 });
 
 app.get("/urls.json", (req, res) => { //prints the urlDatabase in the browser
@@ -42,37 +63,95 @@ app.get("/hello", (req, res) => {
 });
 
 app.get("/urls", (req, res) => { //passing the URL data to our template
-  let templateVars = { urls: urlDatabase, 
-    username: req.cookies["username"]
+  let userID = req.cookies["user_id"];
+  let user = users[userID];
+  let templateVars = {
+    urls: [],
+    user: user,
+    user_id: userID
   };
   res.render('urls_index', templateVars)
 })
 
-app.get("/urls/new", (req, res) => {
+app.get("/urls/new", (req, res) => { //saving cookies for adding new URL
+  let userID = req.cookies["user_id"];
+  let user = users[userID];
   let templateVars = {
-    username: req.cookies["username"]
-  }
+    urls: [],
+    user: user
+  };
   res.render("urls_new", templateVars)
 })
 
 app.get("/urls/:shortURL", (req, res) => {
+  let userID = req.cookies["user_id"];
+  let user = users[userID];
   let templateVars = {
-    shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL], username: req.cookies["username"] };
+    shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL], user: user };
     res.render("urls_show", templateVars)
 })
 
 app.post("/urls", (req, res) => {
   let shortURL = generateRandomString(6);
   urlDatabase[shortURL] = req.body.longURL;
-  console.log('result', urlDatabase)
   res.redirect(`/urls/${shortURL}`);
 });
 
 app.get("/u/:shortURL", (req, res) => {
   let shortURL = req.params.shortURL;
   const longURL = urlDatabase[shortURL];
-  // console.log(longURL);
   res.redirect(longURL);
+})
+
+app.get("/register", (req, res) => {
+  let userID = req.cookies["user_id"];
+  let user = users[userID];
+  let templateVars = {
+    urls: [],
+    user: user
+  };
+  res.render("register", templateVars)
+})
+
+app.post("/register", (req, res) => { //object for all the registration
+  if (req.body.email === '' || req.body.password === '') {
+    res.status(404).send("Invalid Email address or Password entry")
+  } else if (checkEmail(req.body.email)) {
+    res.status(404).send("Email already exists")
+  } else {
+    let userRandomID = generateRandomString(6);
+    users[userRandomID] = {
+      id: userRandomID,
+      email: req.body.email,
+      password: req.body.password
+    };
+
+    res.cookie('user_id', userRandomID).redirect("/urls/")
+  };
+});
+
+app.get("/login-user", (req, res) => {
+  let userID = req.cookies["user_id"];
+  let user = users[userID];
+  let templateVars = {
+    urls: [],
+    user: user
+  };
+  res.render("login-user", templateVars)
+})
+
+//POST for log-in to to check if the user is already registered
+app.post("/login-user", (req, res) => {
+  let currentUser = checkEmail(req.body.email);
+  if (currentUser && (currentUser.password === req.body.password)) {
+    res.cookie("user_id", currentUser.id).redirect("/urls/")
+  } else {
+    res.status(404).send("Nope!");
+  }
+})
+
+app.get("/logout", (req, res) => {
+  res.clearCookie("user_id").redirect("/urls/")
 })
 
 app.post("/urls/:shortURL/delete", (req, res) => {
@@ -86,11 +165,17 @@ app.post("/urls/:shortURL", (req, res) => {
 })
 
 app.post("/logout", (req, res) => {
-  res.clearCookie("username").redirect("/urls/")
+  res.clearCookie("user_id").redirect("/urls/")
 })
 
-app.post("/login", (req, res) => {
-  res.cookie("username", req.body.username).redirect("/urls")
-})
+// app.post("/login", (req, res) => {
+//   let userID = req.cookies["user_id"];
+//   let user = users[userID];
+//   let templateVars = {
+//     urls: [],
+//     user: user
+//   };
+//   res.cookie("user_id", templateVars).redirect("/urls")
+// })
 
 
