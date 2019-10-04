@@ -1,6 +1,7 @@
 const express = require("express");
 const app = express();
 const bodyParser = require("body-parser");
+const bcrypt = require('bcrypt');
 app.use(bodyParser.urlencoded({extended: true}));
 
 let cookieParser = require('cookie-parser')
@@ -29,11 +30,6 @@ const users = {
     id: "userRandomID",
     email: "user@example.com",
     password: "purple-monkey-dinosaur"
-  },
-  "user2RandomID": {
-    id: "user2RandomID",
-    email: "user2@example.com",
-    password: "dishwasher-funk"
   }
 }
 
@@ -58,7 +54,7 @@ const urlForUsers = function (id) { //helper function for the specific users URL
 
 
 app.get("/", (req, res) => { //prints the initial message Hello when opening the browser
-  if (!users[req.cookie.user_id]) {
+  if (!users[req.cookies.user_id]) {
     res.redirect("login-user")
   } else {
     res.redirect("/urls");
@@ -160,7 +156,7 @@ app.post("/register", (req, res) => { //object for all the registration
     users[userRandomID] = {
       id: userRandomID,
       email: req.body.email,
-      password: req.body.password
+      password: bcrypt.hashSync(req.body.password, 10)
     };
     res.cookie('user_id', userRandomID).redirect("/urls/")
   };
@@ -180,7 +176,7 @@ app.get("/login-user", (req, res) => {
 //POST for log-in to to check if the user is already registered
 app.post("/login-user", (req, res) => {
   let currentUser = checkEmail(req.body.email);
-  if (currentUser && (currentUser.password === req.body.password)) {
+  if (currentUser && bcrypt.compareSync(req.body.password, currentUser.password)) {
     res.cookie("user_id", currentUser.id).redirect("/urls/")
   } else {
     res.status(404).send("Nope!");
