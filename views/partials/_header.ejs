@@ -13,7 +13,7 @@
       </div>
     </div>
     <div>
-      <% if (user) { %>
+      <% if (user !== undefined) { %>
         <form action="/logout" method="GET" class="form-example">
           <div class="form-example">Logged In As: <%= user.email %>
             <button type="submit" class="btn btn-primary">Logout</button>

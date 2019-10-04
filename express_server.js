@@ -19,10 +19,9 @@ function generateRandomString(length) {
   return result;
 }
 
-
 const urlDatabase = {
-  "b2xVn2": "http://www.lighthouselabs.ca",
-  "9sm5xK": "http://www.google.com"
+  b6UTxQ: { longURL: "https://www.tsn.ca", userID: "aJ48lW" },
+  i3BoGr: { longURL: "https://www.google.ca", userID: "aJ48lW" }
 };
 
 const users = {
@@ -40,62 +39,81 @@ const users = {
 
 function checkEmail(email) {
   for(let item in users){
-
     if (email === users[item].email) {
       return users[item];
     } 
   } return false
 };
 
+const urlForUsers = function (id) { //helper function for the specific users URL
+  let shortURLs = Object.keys(urlDatabase);
+  let specificURL = {};
+  for (let shortURL of shortURLs) {
+    console.log(shortURL)
+    if (urlDatabase[shortURL].userID === id){
+      specificURL[shortURL] = urlDatabase[shortURL];
+    }
+  } return specificURL;
+}
+
+
 app.get("/", (req, res) => { //prints the initial message Hello when opening the browser
-  res.send("Hello!");
+  if (!users[req.cookie.user_id]) {
+    res.redirect("login-user")
+  } else {
+    res.redirect("/urls");
+  }
 });
 
 app.listen(PORT, () => { //when turning on the server to recieve requests. the console will print out message
+  console.log(`App listening on port ${PORT}`)
 });
 
 app.get("/urls.json", (req, res) => { //prints the urlDatabase in the browser
   res.json(urlDatabase);
 });
 
-app.get("/hello", (req, res) => {
-  res.send("<html><body>Hello <b>World</b></body></html>\n"); //should see Hello World w/ world in BOLD
+
+app.post("/urls", (req, res) => { //routing towards the tiny urls page where it creates new URL
+  let shortURL = generateRandomString(6);
+  let userID = req.cookies["user_id"];
+  urlDatabase[shortURL] = {longURL: req.body.longURL, userID};
+  console.log("urldatabase: ", urlDatabase)
+  res.redirect(`/urls/${shortURL}`);
 });
 
 app.get("/urls", (req, res) => { //passing the URL data to our template
-  let userID = req.cookies["user_id"];
-  let user = users[userID];
+  // let user = users[req.cookies.user_id]
   let templateVars = {
-    urls: [],
-    user: user,
-    user_id: userID
+      urls: urlForUsers(req.cookies.user_id),
+      user: users[req.cookies.user_id]
   };
+  console.log("templvars: ",templateVars)
+  if(!templateVars.user) {
+    res.render('login-user', templateVars)
+  } else {
   res.render('urls_index', templateVars)
+  }
 })
+
 
 app.get("/urls/new", (req, res) => { //saving cookies for adding new URL
-  let userID = req.cookies["user_id"];
-  let user = users[userID];
-  let templateVars = {
-    urls: [],
-    user: user
+  // let user = users[req.cookies.user_id]
+  let templateVars = { 
+    user: users[req.cookies.user_id]
   };
-  res.render("urls_new", templateVars)
-})
-
-app.get("/urls/:shortURL", (req, res) => {
-  let userID = req.cookies["user_id"];
-  let user = users[userID];
-  let templateVars = {
-    shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL], user: user };
-    res.render("urls_show", templateVars)
-})
-
-app.post("/urls", (req, res) => {
-  let shortURL = generateRandomString(6);
-  urlDatabase[shortURL] = req.body.longURL;
-  res.redirect(`/urls/${shortURL}`);
+  if (!templateVars.user) {
+    res.redirect("login-user");
+  } else {
+    res.render('urls_new', templateVars);
+  }
 });
+
+
+app.post("/urls/:shortURL", (req, res) => { //allowing us to edit existing URL
+  urlDatabase[req.params.shortURL].longURL = req.body.longURL;
+  res.redirect("/urls/" + req.params.shortURL)
+})
 
 app.get("/u/:shortURL", (req, res) => {
   let shortURL = req.params.shortURL;
@@ -103,14 +121,33 @@ app.get("/u/:shortURL", (req, res) => {
   res.redirect(longURL);
 })
 
-app.get("/register", (req, res) => {
-  let userID = req.cookies["user_id"];
-  let user = users[userID];
+app.post("/urls/:shortURL/delete", (req, res) => {
   let templateVars = {
-    urls: [],
-    user: user
+    user: users[req.cookies.user_id]
+  };
+  delete urlDatabase[req.params.shortURL];
+  res.redirect(`/urls`);
+})
+
+app.get("/register", (req, res) => {
+  // let user = users[req.cookies.user_id]
+  let templateVars = {
+    user: users[req.cookies.user_id]
   };
   res.render("register", templateVars)
+})
+
+app.get("/urls/:shortURL", (req, res) => { //displays the shortURL
+  let templateVars = {
+    shortURL: req.params.shortURL, 
+    longURL: urlDatabase[req.params.shortURL].longURL,
+    user: users[req.cookies.user_id] };
+
+    if(templateVars.user){
+      res.render("urls_show", templateVars)
+    } else {
+      res.render("login-user", templateVars)
+    }
 })
 
 app.post("/register", (req, res) => { //object for all the registration
@@ -125,19 +162,19 @@ app.post("/register", (req, res) => { //object for all the registration
       email: req.body.email,
       password: req.body.password
     };
-
     res.cookie('user_id', userRandomID).redirect("/urls/")
   };
 });
 
 app.get("/login-user", (req, res) => {
-  let userID = req.cookies["user_id"];
-  let user = users[userID];
   let templateVars = {
-    urls: [],
-    user: user
+    user: users[req.cookies.user_id]
   };
+  if(templateVars.user){
+    res.redirect("urls")
+  } else {
   res.render("login-user", templateVars)
+  }
 })
 
 //POST for log-in to to check if the user is already registered
@@ -150,32 +187,15 @@ app.post("/login-user", (req, res) => {
   }
 })
 
+app.post('/logout', (req, res) => {
+  console.log("the user has logged out. Thank you!");
+  res.clearCookie("user_id").redirect('/urls');
+})
+
 app.get("/logout", (req, res) => {
   res.clearCookie("user_id").redirect("/urls/")
 })
 
-app.post("/urls/:shortURL/delete", (req, res) => {
-  delete urlDatabase[req.params.shortURL];
-  res.redirect("/urls/")
-})
 
-app.post("/urls/:shortURL", (req, res) => {
-  urlDatabase[req.params.shortURL] = req.body.longURL
-  res.redirect("/urls/" + req.params.shortURL)
-})
-
-app.post("/logout", (req, res) => {
-  res.clearCookie("user_id").redirect("/urls/")
-})
-
-// app.post("/login", (req, res) => {
-//   let userID = req.cookies["user_id"];
-//   let user = users[userID];
-//   let templateVars = {
-//     urls: [],
-//     user: user
-//   };
-//   res.cookie("user_id", templateVars).redirect("/urls")
-// })
 
 
