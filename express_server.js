@@ -2,11 +2,15 @@ const express = require("express");
 const app = express();
 const bodyParser = require("body-parser");
 const bcrypt = require('bcrypt');
+const cookieSession = require('cookie-session')
 app.use(bodyParser.urlencoded({extended: true}));
+app.use(cookieSession({
+  name: "avi",
+  keys: ['avi']
+}))
 
-let cookieParser = require('cookie-parser')
 const PORT = 8080;
-app.use(cookieParser())
+
 
 app.set("view engine", "ejs"); //this tells express app to use EJS as it's templating engine
 
@@ -54,7 +58,7 @@ const urlForUsers = function (id) { //helper function for the specific users URL
 
 
 app.get("/", (req, res) => { //prints the initial message Hello when opening the browser
-  if (!users[req.cookies.user_id]) {
+  if (!users[req.session.user_id]) {
     res.redirect("login-user")
   } else {
     res.redirect("/urls");
@@ -72,7 +76,7 @@ app.get("/urls.json", (req, res) => { //prints the urlDatabase in the browser
 
 app.post("/urls", (req, res) => { //routing towards the tiny urls page where it creates new URL
   let shortURL = generateRandomString(6);
-  let userID = req.cookies["user_id"];
+  let userID = req.session.user_id;
   urlDatabase[shortURL] = {longURL: req.body.longURL, userID};
   console.log("urldatabase: ", urlDatabase)
   res.redirect(`/urls/${shortURL}`);
@@ -81,8 +85,8 @@ app.post("/urls", (req, res) => { //routing towards the tiny urls page where it 
 app.get("/urls", (req, res) => { //passing the URL data to our template
   // let user = users[req.cookies.user_id]
   let templateVars = {
-      urls: urlForUsers(req.cookies.user_id),
-      user: users[req.cookies.user_id]
+      urls: urlForUsers(req.session.user_id),
+      user: users[req.session.user_id]
   };
   console.log("templvars: ",templateVars)
   if(!templateVars.user) {
@@ -96,7 +100,7 @@ app.get("/urls", (req, res) => { //passing the URL data to our template
 app.get("/urls/new", (req, res) => { //saving cookies for adding new URL
   // let user = users[req.cookies.user_id]
   let templateVars = { 
-    user: users[req.cookies.user_id]
+    user: users[req.session.user_id]
   };
   if (!templateVars.user) {
     res.redirect("login-user");
@@ -119,7 +123,7 @@ app.get("/u/:shortURL", (req, res) => {
 
 app.post("/urls/:shortURL/delete", (req, res) => {
   let templateVars = {
-    user: users[req.cookies.user_id]
+    user: users[req.session.user_id]
   };
   delete urlDatabase[req.params.shortURL];
   res.redirect(`/urls`);
@@ -128,7 +132,7 @@ app.post("/urls/:shortURL/delete", (req, res) => {
 app.get("/register", (req, res) => {
   // let user = users[req.cookies.user_id]
   let templateVars = {
-    user: users[req.cookies.user_id]
+    user: users[req.session.user_id]
   };
   res.render("register", templateVars)
 })
@@ -137,7 +141,7 @@ app.get("/urls/:shortURL", (req, res) => { //displays the shortURL
   let templateVars = {
     shortURL: req.params.shortURL, 
     longURL: urlDatabase[req.params.shortURL].longURL,
-    user: users[req.cookies.user_id] };
+    user: users[req.session.user_id] };
 
     if(templateVars.user){
       res.render("urls_show", templateVars)
@@ -158,13 +162,14 @@ app.post("/register", (req, res) => { //object for all the registration
       email: req.body.email,
       password: bcrypt.hashSync(req.body.password, 10)
     };
-    res.cookie('user_id', userRandomID).redirect("/urls/")
+    req.session.user_id = userRandomID;
+    res.redirect("/urls/")
   };
 });
 
 app.get("/login-user", (req, res) => {
   let templateVars = {
-    user: users[req.cookies.user_id]
+    user: users[req.session.user_id]
   };
   if(templateVars.user){
     res.redirect("urls")
@@ -177,7 +182,8 @@ app.get("/login-user", (req, res) => {
 app.post("/login-user", (req, res) => {
   let currentUser = checkEmail(req.body.email);
   if (currentUser && bcrypt.compareSync(req.body.password, currentUser.password)) {
-    res.cookie("user_id", currentUser.id).redirect("/urls/")
+    res.session.user_id = currentUser.id
+    res.redirect("/urls/")
   } else {
     res.status(404).send("Nope!");
   }
@@ -185,11 +191,13 @@ app.post("/login-user", (req, res) => {
 
 app.post('/logout', (req, res) => {
   console.log("the user has logged out. Thank you!");
-  res.clearCookie("user_id").redirect('/urls');
+  res.session = null;
+  res.redirect('/urls');
 })
 
 app.get("/logout", (req, res) => {
-  res.clearCookie("user_id").redirect("/urls/")
+  req.session = null;
+  res.redirect("/urls/")
 })
 
 
