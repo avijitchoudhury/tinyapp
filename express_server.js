@@ -2,8 +2,9 @@ const express = require("express");
 const app = express();
 const bodyParser = require("body-parser");
 const bcrypt = require('bcrypt');
-const cookieSession = require('cookie-session')
-app.use(bodyParser.urlencoded({extended: true}));
+const cookieSession = require('cookie-session');
+const { getUsersByEmail } = require("./helpers");
+app.use(bodyParser.urlencoded({extended: true}));;
 app.use(cookieSession({
   name: "avi",
   keys: ['avi']
@@ -24,6 +25,7 @@ function generateRandomString(length) {
   return result;
 }
 
+
 const urlDatabase = {
   b6UTxQ: { longURL: "https://www.tsn.ca", userID: "aJ48lW" },
   i3BoGr: { longURL: "https://www.google.ca", userID: "aJ48lW" }
@@ -37,13 +39,6 @@ const users = {
   }
 }
 
-function checkEmail(email) {
-  for(let item in users){
-    if (email === users[item].email) {
-      return users[item];
-    } 
-  } return false
-};
 
 const urlForUsers = function (id) { //helper function for the specific users URL
   let shortURLs = Object.keys(urlDatabase);
@@ -153,7 +148,7 @@ app.get("/urls/:shortURL", (req, res) => { //displays the shortURL
 app.post("/register", (req, res) => { //object for all the registration
   if (req.body.email === '' || req.body.password === '') {
     res.status(404).send("Invalid Email address or Password entry")
-  } else if (checkEmail(req.body.email)) {
+  } else if (getUsersByEmail(req.body.email, users)) {
     res.status(404).send("Email already exists")
   } else {
     let userRandomID = generateRandomString(6);
@@ -180,7 +175,7 @@ app.get("/login-user", (req, res) => {
 
 //POST for log-in to to check if the user is already registered
 app.post("/login-user", (req, res) => {
-  let currentUser = checkEmail(req.body.email);
+  let currentUser = getUsersByEmail(req.body.email, users);
   if (currentUser && bcrypt.compareSync(req.body.password, currentUser.password)) {
     res.session.user_id = currentUser.id
     res.redirect("/urls/")
