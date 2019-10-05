@@ -12,10 +12,15 @@
 
       </div>
     </div>
+    <style>
+    #loggedIn {
+      color: white;
+    }
+    </style>
     <div>
       <% if (user !== undefined) { %>
       <form action="/logout" method="GET" class="form-example">
-        <div class="form-example">Logged In As: <%= user.email %>
+        <div class="form-example" id="loggedIn">Logged In As: <%= user.email %>
           <button type="submit" class="btn btn-primary">Logout</button>
         </div>
       </form>
