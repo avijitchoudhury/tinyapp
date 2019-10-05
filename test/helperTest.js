@@ -15,17 +15,17 @@ const testUsers = {
   }
 };
 
-describe('getUserByEmail', function () {
-  it('should return a user with valid email', function () {
-    const user = getUserByEmail("user@example.com", user)
+
+describe('getUserByEmail', function() {
+  it('should return a user with valid email', function() {
+    const userId = getUserByEmail("user@example.com", testUsers);
     const expectedOutput = "userRandomID";
-    assert.equal(user.id, expectedOutput)
+    assert.equal(userId, expectedOutput);
   });
-  it('should return unexpected output or undefined', function () {
-    const user = getUserByEmail("user@example.com", user)
-    const expectedOutput = undefined;
-    assert.equal(user.id, expectedOutput)
-  })
+  it('should return unexpected output or undefined', function() {
+    const userId = getUserByEmail("user@example.com", testUsers);
+    assert.isUndefined(userId);
+  });
 });
 
 
