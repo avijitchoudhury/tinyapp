@@ -100,7 +100,7 @@ app.post("/urls/:shortURL", (req, res) => { //allowing us to edit existing URL
 
 app.get("/u/:shortURL", (req, res) => {
   let shortURL = req.params.shortURL;
-  const longURL = urlDatabase[shortURL];
+  const longURL = urlDatabase[shortURL].longURL;
   res.redirect(longURL);
 });
 
@@ -162,7 +162,7 @@ app.get("/login-user", (req, res) => {
 app.post("/login-user", (req, res) => {
   let currentUser = getUserByEmail(req.body.email, users);
   if (currentUser && bcrypt.compareSync(req.body.password, currentUser.password)) {
-    res.session.user_id = currentUser.id;
+    req.session.user_id = currentUser.id;
     res.redirect("/urls/");
   } else {
     res.status(404).send("Nope!");
